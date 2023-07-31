@@ -218,7 +218,7 @@ contract SecurityToken is ERC20, Managed {
         string memory _name,
         string memory _uri
     ) public onlyManager {
-        Document memory newDoc = Document({name: _name, uri: _uri});
+        Document memory newDoc = Document({name: _name, uri: _uri, deleted: false});
         documents.push(newDoc);
         emit DocumentAttached(_name, _uri);
     }
@@ -232,12 +232,16 @@ contract SecurityToken is ERC20, Managed {
     function getDocument(
         uint256 index
     ) public view returns (string memory, string memory) {
+        require(index < documents.length, "SecurityToken: document index out of bounds");
         return (documents[index].name, documents[index].uri);
     }
 
-    // Method to remove a document from the token
+    // Method to remove a document from the token, by marking it as deleted and removing its name and URI
     function removeDocument(uint256 index) public onlyManager {
-        delete documents[index];
+        require(index < documents.length, "SecurityToken: document index out of bounds");
+        documents[index].deleted = true;
+        documents[index].name = "";
+        documents[index].uri = "";
     }
 
     // Method to update the name or URI of a document
