@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC-BY-NC-ND-2.5
 pragma solidity ^0.8.7;
 
 /// @title Security Token
@@ -5,15 +6,19 @@ pragma solidity ^0.8.7;
 /// @notice Basic security token implementation, expanding ERC20
 /// @dev This contract is a basic implementation of a Security Token, expanding ERC20 and following ERC1400 requirements:
 
-// SPDX-License-Identifier: CC-BY-NC-ND-2.5
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/Managed.sol";
 
 // Inheriting from OpenZeppelin's ERC20 and Ownable to provide basic token features and ownership control
 contract SecurityToken is ERC20, Managed {
     // ********************* VARIABLES, EVENTS AND MODIFIERS *********************
+    // **** 0. Pegged asset: stocks, etf... whatever ****
+    // This must be retrieved via an oracle, but there seem to be no oracles for stocks or other traditional assets deployed in Sepolia
+    // ID of the pegged asset
+    string private _peggedAssetId;
+    // Price of the pegged asset, in usd
+    uint256 private _peggedAssetPrice;
+
     // **** 1. Whitelists and blacklists ****
     // Whitelist of addresses authorized to hold tokens
     mapping(address => bool) public whitelist;
@@ -64,9 +69,26 @@ contract SecurityToken is ERC20, Managed {
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor() ERC20("UC3MSecurityToken", "SECT") {}
+    constructor(string memory _asset, uint256 _price) ERC20("UC3MSecurityToken", "SECT") {
+        _peggedAssetId = _asset;
+        _peggedAssetPrice = _price;
+    }
 
     // ********************* FUNCTIONS *********************
+    // **** 0. Pegged asset: stocks, etf... whatever ****
+    // Get the price of the pegged asset
+    function getPrice() public view returns (uint256) {
+        return _peggedAssetPrice;
+    }
+    // Set the price of the pegged asset
+    function setPrice(uint256 newPrice) public onlyManager {
+        _peggedAssetPrice = newPrice;
+    }
+    // Get the id of the pegged asset
+    function getAssetId() public view returns (string memory) {
+        return _peggedAssetId;
+    }
+
     // **** 1. Whitelists and blacklists ****
     // Allow manager to add an address to the whitelist
     function addToWhitelist(address account) public onlyManager {
@@ -131,26 +153,7 @@ contract SecurityToken is ERC20, Managed {
         updateUnlockedBalance(account);
     }
 
-    // Unlocks any vested tokens that have vested up to the current time. This will be called when transferring tokens or when getting the unlocked balance of an address
-    /*function updateUnlockedBalance(address account) private {
-        for (uint256 i = 0; i < _vestingSchedules[account].length && i < 2; i++) {
-            VestingEntry storage entry = _vestingSchedules[account][i];
-            if (block.timestamp >= entry.unlockTime) {
-                _unlockedBalance[account] += entry.amount;
-                // Move the last entry to this slot and then delete the last slot
-                _vestingSchedules[account][i] = _vestingSchedules[account][
-                    _vestingSchedules[account].length - 1
-                ];
-                _vestingSchedules[account].pop();
-                // Go back one step in order to process the entry that we have just swapped
-                i--;
-            } else {
-                // Since the list is ordered by time, we can break the loop as soon as we find an element that is not yet unlocked
-                break;
-            }
-        }
-    }*/
-
+    // Updates the unlocked balance of an account. Only accesses the first entry of the vesting schedules array, so multiple calls could be needed to update the whole balance
     function updateUnlockedBalance(address account) public {
     if (_vestingSchedules[account].length > 0) {
         VestingEntry storage entry = _vestingSchedules[account][0];
