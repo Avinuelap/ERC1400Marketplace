@@ -8,16 +8,15 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./utils/Managed.sol";
+import "./interfaces/ISecurityToken.sol";
 
 // Inheriting from OpenZeppelin's ERC20 and Ownable to provide basic token features and ownership control
-contract SecurityToken is ERC20, Managed {
+contract SecurityToken is ERC20, Managed, ISecurityToken {
     // ********************* VARIABLES, EVENTS AND MODIFIERS *********************
     // **** 0. Pegged asset: stocks, etf... whatever ****
     // This must be retrieved via an oracle, but there seem to be no oracles for stocks or other traditional assets deployed in Sepolia
     // ID of the pegged asset
     string private _peggedAssetId;
-    // Price of the pegged asset, in usd
-    uint256 private _peggedAssetPrice;
 
     // **** 1. Whitelists and blacklists ****
     // Whitelist of addresses authorized to hold tokens
@@ -39,10 +38,8 @@ contract SecurityToken is ERC20, Managed {
     // Limit for VestingEntry count per account. Needed to avoid gas limit errors
     uint256 public constant MAX_VESTING_ENTRIES = 5;
     // Vesting schedules structure to store moments in time when tokens are unlocked, as well as the amount of tokens unlocked at that moment
-    struct VestingEntry {
-        uint256 unlockTime;
-        uint256 amount;
-    }
+    // VestingEntry declared in Interface
+
     // Number of partitions for each address
     mapping(address => uint256) private _partitions;
 
@@ -61,29 +58,20 @@ contract SecurityToken is ERC20, Managed {
     // Documents attached to the token
     Document[] public documents;
 
-    // Event emitted when a document is attached
-    event DocumentAttached(string indexed name, string uri);
+    // Event emitted when a document is attached (declared in Interface)
+    // event DocumentAttached(string indexed name, string uri);
 
     // **** 5. Controller and Operators ****
     // Managed by the Managed contract
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor(string memory _asset, uint256 _price) ERC20("UC3MSecurityToken", "SECT") {
+    constructor(string memory _asset) ERC20("UC3MSecurityToken", "SECT") {
         _peggedAssetId = _asset;
-        _peggedAssetPrice = _price;
     }
 
     // ********************* FUNCTIONS *********************
     // **** 0. Pegged asset: stocks, etf... whatever ****
-    // Get the price of the pegged asset
-    function getPrice() public view returns (uint256) {
-        return _peggedAssetPrice;
-    }
-    // Set the price of the pegged asset
-    function setPrice(uint256 newPrice) public onlyManager {
-        _peggedAssetPrice = newPrice;
-    }
     // Get the id of the pegged asset
     function getAssetId() public view returns (string memory) {
         return _peggedAssetId;
@@ -155,24 +143,36 @@ contract SecurityToken is ERC20, Managed {
 
     // Updates the unlocked balance of an account. Only accesses the first entry of the vesting schedules array, so multiple calls could be needed to update the whole balance
     function updateUnlockedBalance(address account) public {
-    if (_vestingSchedules[account].length > 0) {
-        VestingEntry storage entry = _vestingSchedules[account][0];
-        if (block.timestamp >= entry.unlockTime) {
-            _unlockedBalance[account] += entry.amount;
-            // Remove the first entry from the array
-            for (uint256 i = 0; i < _vestingSchedules[account].length - 1; i++) {
-                _vestingSchedules[account][i] = _vestingSchedules[account][i + 1];
+        if (_vestingSchedules[account].length > 0) {
+            VestingEntry storage entry = _vestingSchedules[account][0];
+            if (block.timestamp >= entry.unlockTime) {
+                _unlockedBalance[account] += entry.amount;
+                // Remove the first entry from the array
+                for (
+                    uint256 i = 0;
+                    i < _vestingSchedules[account].length - 1;
+                    i++
+                ) {
+                    _vestingSchedules[account][i] = _vestingSchedules[account][
+                        i + 1
+                    ];
+                }
+                _vestingSchedules[account].pop();
             }
-            _vestingSchedules[account].pop();
         }
     }
-}
 
     // Modify transfer function to allow transfer of unlocked tokens only
     function transfer(
         address to,
         uint256 amount
-    ) public override isWhitelisted(to) isNotBlacklisted(to) returns (bool) {
+    )
+        public
+        override(ERC20, ISecurityToken)
+        isWhitelisted(to)
+        isNotBlacklisted(to)
+        returns (bool)
+    {
         // Update unlocked balance before transfer
         updateUnlockedBalance(_msgSender());
         // Check if the sender has enough unlocked tokens
@@ -195,7 +195,7 @@ contract SecurityToken is ERC20, Managed {
         uint256 amount
     )
         public
-        override
+        override(ERC20, ISecurityToken)
         isWhitelisted(to)
         isWhitelisted(from)
         isNotBlacklisted(to)
@@ -246,8 +246,11 @@ contract SecurityToken is ERC20, Managed {
         );
         return _unlockedBalance[_msgSender()];
     }
+
     // Get unlocked balance of an address
-    function getUnlockedBalanceOf(address tokenHolder) public view returns (uint256) {
+    function getUnlockedBalanceOf(
+        address tokenHolder
+    ) public view returns (uint256) {
         require(
             _vestingSchedules[tokenHolder].length <= MAX_VESTING_ENTRIES,
             "SecurityToken: Too many vesting schedules."
@@ -255,7 +258,14 @@ contract SecurityToken is ERC20, Managed {
         return _unlockedBalance[tokenHolder];
     }
 
-    //
+    // Get total balance of an address
+    /*
+    function balanceOf(
+        address tokenHolder
+    ) public view returns (uint256) {
+        return super.balanceOf(tokenHolder);
+    }
+    */
 
     // **** 4. Document Management ****
     // Method to attach a document to the token

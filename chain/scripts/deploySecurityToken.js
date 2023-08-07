@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+const ethers = require('ethers');
 const contracts = require('../deployedContracts.json');
 const fs = require('fs');
 
@@ -7,8 +8,7 @@ async function main() {
   const SecurityToken = await hre.ethers.getContractFactory("SecurityToken");
 
   const activo = "TSLA";
-  const precio = ethers.utils.parseUnits('254.11', 'ether'); // converted to wei, for correct precision
-  const securityToken = await SecurityToken.deploy(activo, precio);
+  const securityToken = await SecurityToken.deploy(activo);
 
   await securityToken.deployed();
 
@@ -39,7 +39,7 @@ async function main() {
   const vestingUnlockTimes = [date1, date2]; // Unlock times in the past
 
   await securityToken.mint(account1, amount, vestingAmounts, vestingUnlockTimes);
-  console.log(`Minted ${amount} tokens to ${account1} with vesting schedule.`);
+  console.log(`Minted ${amount/1e18} tokens to ${account1} with vesting schedule.`);
 }
 
 main()
@@ -49,4 +49,4 @@ main()
     process.exit(1);
   });
 
-// npx hardhat run scripts/deployToken.js --network sepolia
+// npx hardhat run scripts/deploySecurityToken.js --network sepolia

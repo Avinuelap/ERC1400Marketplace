@@ -30,7 +30,6 @@ async function main() {
     console.log(`ERC20 balance of account1: ${erc20Balance1}`);
     console.log(`ERC20 balance of account2: ${erc20Balance2}`);
 
-    return;
     const amountToTransfer = "100000000000000000"; // 0.1 token in Wei (18 decimals)
     await securityToken.transfer(account2, amountToTransfer);
 
@@ -54,6 +53,7 @@ main()
     .catch((error) => {
         console.error(error);
         process.exit(1);
-    });
+    }
+);
 
 // npx hardhat run scripts/testTransfer.js --network sepolia
