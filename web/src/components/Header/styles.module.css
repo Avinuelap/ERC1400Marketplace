@@ -25,5 +25,17 @@
 }
 
 .buttonMetamask:hover {
-  background-color: #ff971d; /* Un naranja un poco más claro para el hover */
+  background-color: #1890ff; /* Un naranja un poco más claro para el hover */
+}
+
+.mainDiv {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.mainDiv > p:hover{
+  cursor: pointer;
+  color: black; 
+  background-color: #1890ff;
 }
