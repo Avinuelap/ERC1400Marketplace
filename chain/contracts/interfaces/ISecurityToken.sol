@@ -18,8 +18,6 @@ interface ISecurityToken is IERC20 {
     function getAssetId() external view returns (string memory);
 
     // Whitelists and blacklists
-    function addToWhitelist(address account) external;
-    function removeFromWhitelist(address account) external;
     function addToBlacklist(address account) external;
     function removeFromBlacklist(address account) external;
 

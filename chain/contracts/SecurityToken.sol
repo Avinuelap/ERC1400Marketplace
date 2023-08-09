@@ -19,15 +19,12 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     string private _peggedAssetId;
 
     // **** 1. Whitelists and blacklists ****
-    // Whitelist of addresses authorized to hold tokens
-    mapping(address => bool) public whitelist;
+    // No point in having a whitelist, because i would need to whitelist every address
+    
+    // Instead, i will have a blacklist of addresses not authorized to hold tokens
     // Blacklist of addresses not authorized to hold tokens
     mapping(address => bool) public blacklist;
-    // Modifier to check if an address is on the whitelist
-    modifier isWhitelisted(address account) {
-        require(whitelist[account], "SecurityToken: account not whitelisted");
-        _;
-    }
+
     // Modifier to check if an address is on the blacklist
     modifier isNotBlacklisted(address account) {
         require(!blacklist[account], "SecurityToken: account is blacklisted");
@@ -66,7 +63,7 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor(string memory _asset) ERC20("UC3MSecurityToken", "SECT") {
+    constructor(string memory _name, string memory _symbol, string memory _asset) ERC20(_name, _symbol) {
         _peggedAssetId = _asset;
     }
 
@@ -78,16 +75,6 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     }
 
     // **** 1. Whitelists and blacklists ****
-    // Allow manager to add an address to the whitelist
-    function addToWhitelist(address account) public onlyManager {
-        whitelist[account] = true;
-    }
-
-    // Allow mamager to remove an address from the whitelist
-    function removeFromWhitelist(address account) public onlyManager {
-        whitelist[account] = false;
-    }
-
     // Allow manager to add an address to the blacklist
     function addToBlacklist(address account) public onlyManager {
         blacklist[account] = true;
@@ -169,7 +156,6 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     )
         public
         override(ERC20, ISecurityToken)
-        isWhitelisted(to)
         isNotBlacklisted(to)
         returns (bool)
     {
@@ -196,8 +182,6 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     )
         public
         override(ERC20, ISecurityToken)
-        isWhitelisted(to)
-        isWhitelisted(from)
         isNotBlacklisted(to)
         isNotBlacklisted(from)
         returns (bool)
