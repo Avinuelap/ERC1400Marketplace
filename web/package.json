@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "antd": "^5.8.2",
+    "bufferutil": "^4.0.7",
+    "ethers": "^6.7.0",
     "next": "13.4.13",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "utf-8-validate": "^5.0.10"
   }
 }
