@@ -63,8 +63,10 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor(string memory _name, string memory _symbol, string memory _asset) ERC20(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, string memory _asset, string memory _docName, string memory _docURL) ERC20(_name, _symbol) {
         _peggedAssetId = _asset;
+        // Attach the first document
+        attachDocument(_docName, _docURL);
     }
 
     // ********************* FUNCTIONS *********************
