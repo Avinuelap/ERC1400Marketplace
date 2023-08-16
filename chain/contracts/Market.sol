@@ -58,6 +58,11 @@ contract Market is Ownable {
         delete _addressToIndex[_tokenAddress];
     }
 
+    // Get registered tokens
+    function getRegisteredTokens() public view returns (RegisteredToken[] memory) {
+        return _registeredTokens;
+    }
+
     function placeBuyOrder(
         uint256 _amount,
         uint256 _price,
