@@ -10,7 +10,6 @@ function Header() {
 
   const navigateToHome = () => {
     router.push("/");
-    console.log("navigateToHome");
   };
 
   const navigateToListToken = () => {
@@ -18,8 +17,7 @@ function Header() {
   };
 
   const navigateToMarketplace = () => {
-    //router.push("/platform");
-    console.log("navigateToMarketplace");
+    router.push("/market");
   };
 
   return (

@@ -1,4 +1,3 @@
-// components/TokenForm.jsx
 import React, { useState } from "react";
 import { ethers } from "ethers";
 import { Web3Provider } from "@ethersproject/providers";
@@ -61,7 +60,9 @@ const Minter = () => {
       try {
         const tx = await marketContract.registerToken(
           contract.address,
-          formData.tokenSymbol
+          formData.tokenName,
+          formData.tokenSymbol,
+          formData.relatedAsset
         );
         await tx.wait();
         console.log("Token añadido al mercado");

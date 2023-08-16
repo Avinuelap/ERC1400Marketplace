@@ -1,0 +1,11 @@
+.whiteText {
+    color: white !important; /* Esto forzará a que el texto tenga el color blanco */
+}
+
+.buttonText {
+    color: white; /* Cambiará el color del texto de los botones */
+}
+
+.linkButton:hover {
+    color: #1890ff; /* Cambiará el color del texto del botón tipo link al pasar el mouse por encima */
+}
