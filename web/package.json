@@ -11,7 +11,7 @@
   "dependencies": {
     "antd": "^5.8.2",
     "bufferutil": "^4.0.7",
-    "ethers": "^6.7.0",
+    "ethers": "^5.7.2",
     "next": "13.4.13",
     "react": "18.2.0",
     "react-dom": "18.2.0",

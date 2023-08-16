@@ -8,9 +8,12 @@
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.header h1 {
+.title {
   margin: 0;
   font-size: 2rem;
+}
+.title:hover {
+  cursor: pointer;
 }
 
 .buttonMetamask {

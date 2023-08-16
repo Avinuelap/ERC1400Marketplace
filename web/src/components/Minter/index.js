@@ -1,26 +1,38 @@
 // components/TokenForm.jsx
 import React, { useState } from "react";
 import { ethers } from "ethers";
+import { Web3Provider } from "@ethersproject/providers";
+import addresses from "../../utils/addresses";
 import SecurityTokenArtifact from "../../utils/SecurityToken.json";
+import MarketArtifact from "../../utils/Market.json";
+import { useMarket } from "../../utils/useMarket";
 import { Form, Input, Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import styles from "./styles.module.css";
 
+
 const Minter = () => {
+  const { marketContract } = useMarket(addresses.Market, MarketArtifact.abi);
+
   const [formData, setFormData] = useState({
     tokenName: "",
     tokenSymbol: "",
     relatedAsset: "",
+    documentationName: "",
     documentationLink: "",
   });
+  const [isLoading, setIsLoading] = useState(false); // Para mostrar un spinner mientras se despliega el contrato
 
   const deployContract = async () => {
     try {
+      setIsLoading(true);
+      // Solicitar acceso a la cuenta de Metamask
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
       // Conectar con Metamask
-      const provider = new ethers.Web3Provider(window.ethereum);
+      const provider = new Web3Provider(window.ethereum);
       const signer = provider.getSigner();
 
-      // ABI y bytecode (importar o cargar desde algún lugar)
+      // ABI y bytecode
       const contractABI = SecurityTokenArtifact.abi;
       const contractBytecode = SecurityTokenArtifact.bytecode;
 
@@ -44,8 +56,23 @@ const Minter = () => {
       await contract.deployed();
 
       console.log("Contrato desplegado en:", contract.address);
+
+      // Guardar address de token en contrato de mercado
+      try {
+        const tx = await marketContract.registerToken(
+          contract.address,
+          formData.tokenSymbol
+        );
+        await tx.wait();
+        console.log("Token añadido al mercado");
+      } catch (error) {
+        console.error("Error añadiendo token al mercado:", error);
+      }
+
     } catch (error) {
       console.error("Error desplegando el contrato:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -146,6 +173,7 @@ const Minter = () => {
           <Button
             type="primary"
             htmlType="submit"
+            loading={isLoading}
             style={{
               display: "block",
               marginLeft: "auto",

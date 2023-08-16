@@ -6,28 +6,31 @@ import { Space } from "antd";
 
 function Header() {
   const router = useRouter();
-  const {
-    currentAccount,
-    connectWallet,
-  } = useContext(AccountContext);
+  const { currentAccount, connectWallet } = useContext(AccountContext);
+
+  const navigateToHome = () => {
+    router.push("/");
+    console.log("navigateToHome");
+  };
 
   const navigateToListToken = () => {
     router.push("/minter");
-    console.log("navigateToListToken")
   };
 
   const navigateToMarketplace = () => {
     //router.push("/platform");
-    console.log("navigateToMarketplace")
+    console.log("navigateToMarketplace");
   };
 
   return (
     <div className={styles.header}>
       <Space align="center" size={600}>
-        <h1>Security Token Marketplace</h1>
-        {!currentAccount && <button className={styles.buttonMetamask} onClick={connectWallet}>
+        <h1 className={styles.title} onClick={navigateToHome}>
+          Security Token Marketplace
+        </h1>
+        {/*!currentAccount && <button className={styles.buttonMetamask} onClick={connectWallet}>
           Conectar MetaMask
-        </button> }
+        </button> */}
       </Space>
       <div className={styles.mainDiv}>
         <p onClick={navigateToListToken}> List Token </p>
