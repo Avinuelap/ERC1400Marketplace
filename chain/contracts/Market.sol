@@ -9,7 +9,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Market is Ownable {
     struct RegisteredToken {
         address tokenAddress;
+        string name;
         string symbol;
+        string asset;
         bool active;
     }
     RegisteredToken[] private _registeredTokens;
@@ -37,8 +39,13 @@ contract Market is Ownable {
 
     // Register new token. If released, this would need to include onlyOwner modifier
     // Registration of new tokens would then be done via a form on the website validated by an admin
-    function registerToken(address _tokenAddress, string memory symbol) public {
-        _registeredTokens.push(RegisteredToken(_tokenAddress, symbol, true));
+    function registerToken(
+        address _tokenAddress,
+        string memory _name,
+        string memory _symbol,
+        string memory _asset
+    ) public {
+        _registeredTokens.push(RegisteredToken(_tokenAddress, _name, _symbol, _asset, true));
         _addressToIndex[_tokenAddress] = _registeredTokens.length - 1;
     }
 
@@ -59,7 +66,11 @@ contract Market is Ownable {
     }
 
     // Get registered tokens
-    function getRegisteredTokens() public view returns (RegisteredToken[] memory) {
+    function getRegisteredTokens()
+        public
+        view
+        returns (RegisteredToken[] memory)
+    {
         return _registeredTokens;
     }
 
