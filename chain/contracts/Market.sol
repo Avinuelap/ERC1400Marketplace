@@ -12,6 +12,7 @@ contract Market is Ownable {
         string name;
         string symbol;
         string asset;
+        string doc;
         bool active;
     }
     RegisteredToken[] private _registeredTokens;
@@ -24,6 +25,7 @@ contract Market is Ownable {
         uint256 amount;
         uint256 totalValue;
         bool isBuyOrder;
+        bool active; // Nuevo campo
     }
 
     struct OrderBook {
@@ -43,34 +45,26 @@ contract Market is Ownable {
         address _tokenAddress,
         string memory _name,
         string memory _symbol,
-        string memory _asset
-    ) public {
-        _registeredTokens.push(RegisteredToken(_tokenAddress, _name, _symbol, _asset, true));
+        string memory _asset,
+        string memory _doc
+    ) public onlyOwner {
+        _registeredTokens.push(RegisteredToken(_tokenAddress, _name, _symbol, _asset, _doc, true));
         _addressToIndex[_tokenAddress] = _registeredTokens.length - 1;
     }
 
     // Unregister token
     function unregisterToken(address _tokenAddress) public onlyOwner {
         uint256 index = _addressToIndex[_tokenAddress];
-
-        // Ensure the token exists
         require(
             _registeredTokens[index].tokenAddress == _tokenAddress,
             "Token not registered"
         );
-
         _registeredTokens[index].active = false;
-
-        // Delete the token's address from the mapping
         delete _addressToIndex[_tokenAddress];
     }
 
     // Get registered tokens
-    function getRegisteredTokens()
-        public
-        view
-        returns (RegisteredToken[] memory)
-    {
+    function getRegisteredTokens() public view returns (RegisteredToken[] memory) {
         return _registeredTokens;
     }
 
@@ -79,32 +73,26 @@ contract Market is Ownable {
         uint256 _price,
         address _tokenAddress
     ) public {
-        // Ensure token is registered and active
         uint256 index = _addressToIndex[_tokenAddress];
-
         require(
             _registeredTokens[index].tokenAddress == _tokenAddress &&
                 _registeredTokens[index].active,
             "Token not registered or not active"
         );
 
-        uint256 totalValue = _price * _amount;
+        uint256 totalValue = _price * (_amount / 1e18);
 
-        // Ensure trader has enough USDT
         require(
             usdt.balanceOf(msg.sender) >= totalValue,
             "Insufficient USDT balance"
         );
 
-        // Transfer USDT from trader
         usdt.transferFrom(msg.sender, address(this), totalValue);
 
-        // Add order
         _orderBooks[_tokenAddress].buyOrders.push(
-            Order(msg.sender, _amount, totalValue, true)
+            Order(msg.sender, _amount, totalValue, true, true)
         );
 
-        // Match new order
         matchOrders(_tokenAddress);
     }
 
@@ -114,89 +102,74 @@ contract Market is Ownable {
         address _tokenAddress
     ) public {
         ISecurityToken token = ISecurityToken(_tokenAddress);
+        uint256 totalValue = _price * (_amount / 1e18) ;
 
-        uint256 totalValue = _price * _amount;
-
-        // Ensure trader has enough Security Tokens
         require(
             token.balanceOf(msg.sender) >= _amount,
             "Insufficient Security Token balance"
         );
 
-        // Transfer Security Tokens from trader
         token.transferFrom(msg.sender, address(this), _amount);
 
-        // Add order
         _orderBooks[_tokenAddress].sellOrders.push(
-            Order(msg.sender, _amount, totalValue, false)
+            Order(msg.sender, _amount, totalValue, false, true)
         );
 
-        // Match new order
         matchOrders(_tokenAddress);
     }
 
     function matchOrders(address _tokenAddress) private {
-        // Check if there's at least one buy and sell order
-        if (
-            _orderBooks[_tokenAddress].buyOrders.length > 0 &&
-            _orderBooks[_tokenAddress].sellOrders.length > 0
-        ) {
-            // Get the first buy and sell orders
-            Order storage buyOrder = _orderBooks[_tokenAddress].buyOrders[0];
-            Order storage sellOrder = _orderBooks[_tokenAddress].sellOrders[0];
+    Order[] storage buyOrders = _orderBooks[_tokenAddress].buyOrders;
+    Order[] storage sellOrders = _orderBooks[_tokenAddress].sellOrders;
 
-            // Check if the first buy order price is higher or equal to the first sell order price
+    for (uint i = 0; i < buyOrders.length; i++) {
+        if (!buyOrders[i].active) continue;
+
+        for (uint j = 0; j < sellOrders.length; j++) {
+            if (!sellOrders[j].active) continue;
+
+            Order storage buyOrder = buyOrders[i];
+            Order storage sellOrder = sellOrders[j];
+
             if (buyOrder.totalValue >= sellOrder.totalValue) {
                 ISecurityToken token = ISecurityToken(_tokenAddress);
-                // Get the amount to trade
                 uint256 tradeAmount = (buyOrder.amount < sellOrder.amount)
                     ? buyOrder.amount
                     : sellOrder.amount;
-                uint256 tradeValue = (buyOrder.totalValue <
-                    sellOrder.totalValue)
+                uint256 tradeValue = (buyOrder.totalValue < sellOrder.totalValue)
                     ? buyOrder.totalValue
                     : sellOrder.totalValue;
 
-                // Transfer Security Tokens from seller to buyer
                 token.transfer(buyOrder.trader, tradeAmount);
-
-                // Transfer USDT from this contract to seller
                 usdt.transfer(sellOrder.trader, tradeValue);
 
-                // Update orders
                 buyOrder.amount -= tradeAmount;
                 sellOrder.amount -= tradeAmount;
                 buyOrder.totalValue -= tradeValue;
                 sellOrder.totalValue -= tradeValue;
 
-                // Remove order if the amount is 0
-                if (buyOrder.amount == 0) {
-                    removeBuyOrder(0, _tokenAddress);
+                if (buyOrder.amount == 0 || buyOrder.totalValue == 0) {
+                    buyOrder.active = false;
                 }
 
-                if (sellOrder.amount == 0) {
-                    removeSellOrder(0, _tokenAddress);
+                if (sellOrder.amount == 0 || sellOrder.totalValue == 0) {
+                    sellOrder.active = false;
                 }
+
+                // Si alguna de las órdenes ya no está activa, salir del bucle
+                if (!buyOrder.active || !sellOrder.active) break;
             }
         }
     }
+}
+
 
     function removeBuyOrder(uint256 index, address _tokenAddress) public {
         require(
             index < _orderBooks[_tokenAddress].buyOrders.length,
             "Index out of bounds"
         );
-
-        // Shift down orders from index
-        for (
-            uint i = index;
-            i < _orderBooks[_tokenAddress].buyOrders.length - 1;
-            i++
-        ) {
-            _orderBooks[_tokenAddress].buyOrders[i] = _orderBooks[_tokenAddress]
-                .buyOrders[i + 1];
-        }
-        _orderBooks[_tokenAddress].buyOrders.pop(); // remove the last element
+        _orderBooks[_tokenAddress].buyOrders[index].active = false;
     }
 
     function removeSellOrder(uint256 index, address _tokenAddress) public {
@@ -204,38 +177,25 @@ contract Market is Ownable {
             index < _orderBooks[_tokenAddress].sellOrders.length,
             "Index out of bounds"
         );
-
-        // Shift down orders from index
-        for (
-            uint i = index;
-            i < _orderBooks[_tokenAddress].sellOrders.length - 1;
-            i++
-        ) {
-            _orderBooks[_tokenAddress].sellOrders[i] = _orderBooks[
-                _tokenAddress
-            ].sellOrders[i + 1];
-        }
-        _orderBooks[_tokenAddress].sellOrders.pop(); // remove the last element
+        _orderBooks[_tokenAddress].sellOrders[index].active = false;
     }
 
-    function getFullOrderBook(
-        address _tokenAddress
-    ) public view returns (Order[] memory, Order[] memory) {
+    function getFullOrderBook(address _tokenAddress)
+        public
+        view
+        returns (Order[] memory, Order[] memory)
+    {
         return (
             _orderBooks[_tokenAddress].buyOrders,
             _orderBooks[_tokenAddress].sellOrders
         );
     }
 
-    function getBuyOrders(
-        address _tokenAddress
-    ) public view returns (Order[] memory) {
+    function getBuyOrders(address _tokenAddress) public view returns (Order[] memory) {
         return _orderBooks[_tokenAddress].buyOrders;
     }
 
-    function getSellOrders(
-        address _tokenAddress
-    ) public view returns (Order[] memory) {
+    function getSellOrders(address _tokenAddress) public view returns (Order[] memory) {
         return _orderBooks[_tokenAddress].sellOrders;
     }
 }

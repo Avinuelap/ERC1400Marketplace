@@ -11,9 +11,8 @@ async function main() {
   const nombre = "Tesla Peg Token";
   const simbolo = "PTSL";
   const activo = "TSLA";
-  const docName = "Tesla webpage"
   const docURI = "https://www.tesla.com/"
-  const securityToken = await SecurityToken.deploy(nombre, simbolo, activo, docName, docURI);
+  const securityToken = await SecurityToken.deploy(nombre, simbolo, activo, docURI);
 
   await securityToken.deployed();
 

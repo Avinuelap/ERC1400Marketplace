@@ -36,12 +36,9 @@ interface ISecurityToken is IERC20 {
     function getUnlockedBalanceOf(address tokenHolder) external view returns (uint256);
 
     // Document Management
-    function attachDocument(string memory _name, string memory _uri) external;
-    function totalDocuments() external view returns (uint256);
-    function getDocument(uint256 index) external view returns (string memory, string memory);
-    function removeDocument(uint256 index) external;
-    function updateDocument(uint256 index, string memory _name, string memory _uri) external;
+    function getDocument() external view returns (string memory);
+    function updateDocument(string memory _uri) external;
 
     // Events
-    event DocumentAttached(string indexed name, string uri);
+    //event DocumentAttached(string indexed name, string uri);
 }

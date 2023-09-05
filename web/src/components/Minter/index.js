@@ -9,7 +9,6 @@ import { Form, Input, Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import styles from "./styles.module.css";
 
-
 const Minter = () => {
   const { marketContract } = useMarket(addresses.Market, MarketArtifact.abi);
 
@@ -17,7 +16,6 @@ const Minter = () => {
     tokenName: "",
     tokenSymbol: "",
     relatedAsset: "",
-    documentationName: "",
     documentationLink: "",
   });
   const [isLoading, setIsLoading] = useState(false); // Para mostrar un spinner mientras se despliega el contrato
@@ -26,7 +24,7 @@ const Minter = () => {
     try {
       setIsLoading(true);
       // Solicitar acceso a la cuenta de Metamask
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      await window.ethereum.request({ method: "eth_requestAccounts" });
       // Conectar con Metamask
       const provider = new Web3Provider(window.ethereum);
       const signer = provider.getSigner();
@@ -47,7 +45,6 @@ const Minter = () => {
         formData.tokenName,
         formData.tokenSymbol,
         formData.relatedAsset,
-        formData.documentationName,
         formData.documentationLink
       );
 
@@ -56,20 +53,42 @@ const Minter = () => {
 
       console.log("Contrato desplegado en:", contract.address);
 
+      // Mintear tokens a la dirección que despliega
+      try {
+        const amount = "50000000000000000000"; // 50 tokens in Wei (18 decimals)
+        const vestingAmounts = ["25000000000000000000", "25000000000000000000"]; // 25 token each in Wei
+        // Unlock dates
+        const date1 = new Date("2023-09-01").getTime() / 1000;
+        const date2 = new Date("2023-10-01").getTime() / 1000;
+
+        const vestingDates = [date1, date2]; // Unlock times in the past
+
+        const txMint = await contract.mint(
+          signer.getAddress(),
+          amount,
+          vestingAmounts,
+          vestingDates
+        );
+        await txMint.wait();
+        console.log("Tokens minteados al desplegador");
+      } catch (error) {
+        console.error("Error minteando tokens:", error);
+      }
+
       // Guardar address de token en contrato de mercado
       try {
         const tx = await marketContract.registerToken(
           contract.address,
           formData.tokenName,
           formData.tokenSymbol,
-          formData.relatedAsset
+          formData.relatedAsset,
+          formData.documentationLink
         );
         await tx.wait();
         console.log("Token añadido al mercado");
       } catch (error) {
         console.error("Error añadiendo token al mercado:", error);
       }
-
     } catch (error) {
       console.error("Error desplegando el contrato:", error);
     } finally {
@@ -139,19 +158,6 @@ const Minter = () => {
           <Input />
         </Form.Item>
 
-        <Form.Item
-          className={styles.formItem}
-          label="Asset documentation name"
-          name="documentationName"
-          rules={[
-            {
-              required: true,
-              message: "Please provide documentation name!",
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
         <Form.Item
           className={styles.formItem}
           label="Asset documentation URL"

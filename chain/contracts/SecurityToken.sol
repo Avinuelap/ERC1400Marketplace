@@ -13,6 +13,9 @@ import "./interfaces/ISecurityToken.sol";
 // Inheriting from OpenZeppelin's ERC20 and Ownable to provide basic token features and ownership control
 contract SecurityToken is ERC20, Managed, ISecurityToken {
     // ********************* VARIABLES, EVENTS AND MODIFIERS *********************
+    address private marketAddress = 0xD73442B1400f7d04eBe5aB166266BBA4fC877e2B;
+    // TODO: anadir excepcion para que marketAddress pueda transferir sin limite de vestings
+
     // **** 0. Pegged asset: stocks, etf... whatever ****
     // This must be retrieved via an oracle, but there seem to be no oracles for stocks or other traditional assets deployed in Sepolia
     // ID of the pegged asset
@@ -47,13 +50,8 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     mapping(address => VestingEntry[]) private _vestingSchedules;
 
     // **** 4. Document Management ****
-    struct Document {
-        string name;
-        string uri; // Location of the document, like HTTP(S) or IPFS
-        bool deleted; // Flag to indicate if the document has been deleted
-    }
-    // Documents attached to the token
-    Document[] public documents;
+    // Documentation attached to the token. Usually a url
+    string public document;
 
     // Event emitted when a document is attached (declared in Interface)
     // event DocumentAttached(string indexed name, string uri);
@@ -63,10 +61,10 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor(string memory _name, string memory _symbol, string memory _asset, string memory _docName, string memory _docURL) ERC20(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, string memory _asset, string memory _docURL) ERC20(_name, _symbol) {
         _peggedAssetId = _asset;
         // Attach the first document
-        attachDocument(_docName, _docURL);
+        document = _docURL;
     }
 
     // ********************* FUNCTIONS *********************
@@ -255,53 +253,16 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // **** 4. Document Management ****
     // Method to attach a document to the token
-    function attachDocument(
-        string memory _name,
-        string memory _uri
-    ) public onlyManager {
-        Document memory newDoc = Document({
-            name: _name,
-            uri: _uri,
-            deleted: false
-        });
-        documents.push(newDoc);
-        emit DocumentAttached(_name, _uri);
-    }
-
-    // Method to get the number of documents attached to the token
-    function totalDocuments() public view returns (uint256) {
-        return documents.length;
-    }
 
     // Method to get the name and URI of a document
-    function getDocument(
-        uint256 index
-    ) public view returns (string memory, string memory) {
-        require(
-            index < documents.length,
-            "SecurityToken: document index out of bounds"
-        );
-        return (documents[index].name, documents[index].uri);
-    }
-
-    // Method to remove a document from the token, by marking it as deleted and removing its name and URI
-    function removeDocument(uint256 index) public onlyManager {
-        require(
-            index < documents.length,
-            "SecurityToken: document index out of bounds"
-        );
-        documents[index].deleted = true;
-        documents[index].name = "";
-        documents[index].uri = "";
+    function getDocument() public view returns (string memory) {
+        return (document);
     }
 
     // Method to update the name or URI of a document
     function updateDocument(
-        uint256 index,
-        string memory _name,
         string memory _uri
     ) public onlyManager {
-        documents[index].name = _name;
-        documents[index].uri = _uri;
+        document = _uri;
     }
 }

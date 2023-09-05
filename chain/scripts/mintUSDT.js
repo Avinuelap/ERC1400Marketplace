@@ -12,6 +12,7 @@ async function main() {
     const usdt = USDT.attach(usdtAddress);
 
     // Mint USDT
+    /*
     address = "0xa4703E892C41d6B85cBf16CDF80D5Dd5e22B45d1";
     const amount = ethers.utils.parseUnits('400', '18');
 
@@ -19,6 +20,12 @@ async function main() {
     await tx.wait();
     console.log("Minted USDT to:", address);
     console.log("Amount:", amount / 1e18);
+    */
+    // Check allowances
+    const owner = "0x6b15841452B63FEF248837dbF3012BEB5a0C97A5";
+    const spender = "0x5293BCe8764D5e400511eD91fe93aDBcDEAf8ecb"
+    const allowance = await usdt.allowance(owner, spender)
+    console.log(`Allowance for ${spender} in name of ${owner}: ${allowance}`)
 }
 
 main()
