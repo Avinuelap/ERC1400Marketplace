@@ -13,7 +13,7 @@ import "./interfaces/ISecurityToken.sol";
 // Inheriting from OpenZeppelin's ERC20 and Ownable to provide basic token features and ownership control
 contract SecurityToken is ERC20, Managed, ISecurityToken {
     // ********************* VARIABLES, EVENTS AND MODIFIERS *********************
-    address private marketAddress = 0xD73442B1400f7d04eBe5aB166266BBA4fC877e2B;
+    address private marketAddress = 0x91238558fF6a66955D65d1063D8d9FE014df6f05;
     // TODO: anadir excepcion para que marketAddress pueda transferir sin limite de vestings
 
     // **** 0. Pegged asset: stocks, etf... whatever ****
@@ -23,7 +23,7 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // **** 1. Whitelists and blacklists ****
     // No point in having a whitelist, because i would need to whitelist every address
-    
+
     // Instead, i will have a blacklist of addresses not authorized to hold tokens
     // Blacklist of addresses not authorized to hold tokens
     mapping(address => bool) public blacklist;
@@ -61,7 +61,12 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
 
     // ********************* CONSTRUCTOR *********************
     // 18 decimals by default
-    constructor(string memory _name, string memory _symbol, string memory _asset, string memory _docURL) ERC20(_name, _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        string memory _asset,
+        string memory _docURL
+    ) ERC20(_name, _symbol) {
         _peggedAssetId = _asset;
         // Attach the first document
         document = _docURL;
@@ -149,7 +154,7 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
         }
     }
 
-    // Modify transfer function to allow transfer of unlocked tokens only
+    // Transfer function. Market address is not checked for vesting
     function transfer(
         address to,
         uint256 amount
@@ -159,22 +164,27 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
         isNotBlacklisted(to)
         returns (bool)
     {
-        // Update unlocked balance before transfer
-        updateUnlockedBalance(_msgSender());
-        // Check if the sender has enough unlocked tokens
-        require(
-            _unlockedBalance[_msgSender()] >= amount,
-            "SecurityToken: transfer amount exceeds unlocked balance"
-        );
+        // If sender is marketAddress, dont do vesting checks
+        if (_msgSender() != marketAddress) {
+            // Update unlocked balance before transfer
+            updateUnlockedBalance(_msgSender());
+            // Check if the sender has enough unlocked tokens
+            require(
+                _unlockedBalance[_msgSender()] >= amount,
+                "SecurityToken: transfer amount exceeds unlocked balance"
+            );
+        }
         // Call ERC20's transfer function
         _transfer(_msgSender(), to, amount);
-        // If successful, Substract the amount from the unlocked balance
-        _unlockedBalance[_msgSender()] -= amount;
+        // If successful, substract the amount from the unlocked balance
+        if (_msgSender() != marketAddress) {
+            _unlockedBalance[_msgSender()] -= amount;
+        }
 
         return true;
     }
 
-    // Modify transferFrom function to allow transfer of unlocked tokens only
+    // TransferFrom function. Market address is not checked for vesting
     function transferFrom(
         address from,
         address to,
@@ -186,20 +196,24 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
         isNotBlacklisted(from)
         returns (bool)
     {
-        // Update unlocked balance before transfer
-        updateUnlockedBalance(from);
-        // Check if the sender has enough unlocked tokens
-        require(
-            _unlockedBalance[from] >= amount,
-            "SecurityToken: transfer amount exceeds unlocked balance"
-        );
+        if (from != _msgSender()) {
+            // Update unlocked balance before transfer
+            updateUnlockedBalance(from);
+            // Check if the sender has enough unlocked tokens
+            require(
+                _unlockedBalance[from] >= amount,
+                "SecurityToken: transfer amount exceeds unlocked balance"
+            );
+        }
         // Check allowance
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         // Call ERC20's transfer function
         _transfer(from, to, amount);
         // If successful, substract the transferred amount from the unlocked balance
-        _unlockedBalance[from] -= amount;
+        if (from != marketAddress) {
+            _unlockedBalance[from] -= amount;
+        }
         return true;
     }
 
@@ -260,9 +274,7 @@ contract SecurityToken is ERC20, Managed, ISecurityToken {
     }
 
     // Method to update the name or URI of a document
-    function updateDocument(
-        string memory _uri
-    ) public onlyManager {
+    function updateDocument(string memory _uri) public onlyManager {
         document = _uri;
     }
 }

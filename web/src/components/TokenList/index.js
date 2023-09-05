@@ -3,7 +3,6 @@ import { Web3Provider } from "@ethersproject/providers";
 import { ethers } from "ethers";
 import { constants } from "ethers";
 import { List, Button, Modal, Form, Input, InputNumber } from "antd";
-import { AccountContext } from "../../context/AccountContext";
 import addresses from "../../utils/addresses";
 import MarketArtifact from "../../utils/Market.json";
 import USDTArtifact from "../../utils/USDT.json";
