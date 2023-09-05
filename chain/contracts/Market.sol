@@ -4,9 +4,9 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ISecurityToken.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./utils/Managed.sol";
 
-contract Market is Ownable {
+contract Market is Managed {
     struct RegisteredToken {
         address tokenAddress;
         string name;
@@ -39,7 +39,7 @@ contract Market is Ownable {
         usdt = IERC20(_usdt);
     }
 
-    // Register new token. If released, this would need to include onlyOwner modifier
+    // Register new token. If released, this would need to include onlyManager modifier
     // Registration of new tokens would then be done via a form on the website validated by an admin
     function registerToken(
         address _tokenAddress,
@@ -47,13 +47,13 @@ contract Market is Ownable {
         string memory _symbol,
         string memory _asset,
         string memory _doc
-    ) public onlyOwner {
+    ) public onlyManager {
         _registeredTokens.push(RegisteredToken(_tokenAddress, _name, _symbol, _asset, _doc, true));
         _addressToIndex[_tokenAddress] = _registeredTokens.length - 1;
     }
 
     // Unregister token
-    function unregisterToken(address _tokenAddress) public onlyOwner {
+    function unregisterToken(address _tokenAddress) public onlyManager {
         uint256 index = _addressToIndex[_tokenAddress];
         require(
             _registeredTokens[index].tokenAddress == _tokenAddress,

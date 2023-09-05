@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.7;
 /// @title USDT
-/// @author AVinuela, MBernal
+/// @author AVinuela
 /// @notice Simulación de USDT en Sepolia 
 /// @dev No existe USDT oficial en Sepolia, por lo que se crea una simulacion de USDT para poder realizar las pruebas de la aplicación
 
